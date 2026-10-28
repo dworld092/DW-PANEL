@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DW Panal - Free Fire</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        body {
+            background-color: #0b0f19;
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+        }
+        /* Game Simulation Canvas Area */
+        #gameCanvas {
+            flex-grow: 1;
+            background: radial-gradient(circle, #1a233a 0%, #0d1117 100%);
+            position: relative;
+            cursor: crosshair;
+        }
+        .canvas-info {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #00ffcc;
+            font-size: 13px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        /* Floating DW Panal Styling */
+        .panel-container {
+            width: 380px;
+            background: rgba(15, 23, 42, 0.95);
+            border-left: 2px solid #00ffcc;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-shadow: -5px 0 25px rgba(0, 255, 204, 0.2);
+            z-index: 100;
+        }
+        .panel-header {
+            background: linear-gradient(135deg, #00ffcc, #0077ff);
+            color: #000;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .panel-body {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+        .panel-body::-webkit-scrollbar {
+            width: 5px;
+        }
+        .panel-body::-webkit-scrollbar-thumb {
+            background: #00ffcc;
+            border-radius: 5px;
+        }
+        .section-title {
+            color: #00ffcc;
+            font-size: 14px;
+            margin: 15px 0 8px 0;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(0, 255, 204, 0.3);
+            padding-bottom: 4px;
+        }
+        .control-group {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+        .control-group:hover {
+            border-color: rgba(0, 255, 204, 0.5);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .control-label {
+            font-size: 13px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+        }
+        .switch input { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334155;
+            transition: .3s;
+            border-radius: 22px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #00ffcc;
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+        /* Range Slider */
+        .range-slider {
+            width: 100%;
+            accent-color: #00ffcc;
+            margin-top: 5px;
+        }
+        /* Dropdown / Target Button */
+        .dropdown-btn {
+            background: #1e293b;
+            color: #00ffcc;
+            border: 1px solid #00ffcc;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            width: 100%;
+            text-align: center;
+            transition: 0.2s;
+        }
+        .dropdown-btn:hover {
+            background: #00ffcc;
+            color: #000;
+        }
+        /* Modal Popup for Silent Target */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00ffcc;
+            width: 250px;
+            text-align: center;
+        }
+        .modal-content h3 { margin-bottom: 15px; font-size: 15px; color: #00ffcc; }
+        .modal-option {
+            background: #0f172a;
+            color: #fff;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            border: 1px solid #334155;
+            transition: 0.2s;
+        }
+        .modal-option:hover { background: #00ffcc; color: #000; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <!-- Game Simulation Canvas -->
+    <div style="flex-grow: 1; position: relative;">
+        <div class="canvas-info">
+            <strong>DW Panal Simulation (Free Fire)</strong><br>
+            Click anywhere on screen to test <i>Silent Aim / ESP</i> logic.
+        </div>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <!-- DW Panal UI -->
+    <div class="panel-container">
+        <div class="panel-header">DW Panal v1.0</div>
+        <div class="panel-body">
+            
+            <!-- DHAP 1 -->
+            <div class="section-title">Dhap 1: Silent Aim</div>
+            
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Silent Aim Enable</span>
+                    <label class="switch"><input type="checkbox" id="silentAimEnable" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Ignore Knocked</span>
+                    <label class="switch"><input type="checkbox" id="ignoreKnocked" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Silent Fov: <span id="fovValue">120</span>°</span>
+                </div>
+                <input type="range" min="1" max="360" value="120" class="range-slider" id="fovSlider">
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Legit Delay: <span id="delayValue">3</span></span>
+                </div>
+                <input type="range" min="1" max="6" value="3" class="range-slider" id="delaySlider">
+            </div>
+
+            <div class="control-group">
+                <div class="control-label"><span>Silent Target</span></div>
+                <button class="dropdown-btn" id="targetBtn">Legit</button>
+            </div>
+
+            <!-- DHAP 2 -->
+            <div class="section-title">Dhap 2: Weapon</div>
+            
+            <div class="control-group">
+                <div class="control-label">
+                    <span>No Recoil</span>
+                    <label class="switch"><input type="checkbox" id="noRecoil" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Automatic Famas</span>
+                    <label class="switch" id="autoFamasSwitch"><input type="checkbox" id="autoFamas"><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <!-- DHAP 3 -->
+            <div class="section-title">Dhap 3: Esp External</div>
+            
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Esp External Enable</span>
+                    <label class="switch"><input type="checkbox" id="espEnable" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Esp Line (Tracer)</span>
+                    <label class="switch"><input type="checkbox" id="espLine" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Esp Health</span>
+                    <label class="switch"><input type="checkbox" id="espHealth" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Esp Alert (Count)</span>
+                    <label class="switch"><input type="checkbox" id="espAlert" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Esp Distance</span>
+                    <label class="switch"><input type="checkbox" id="espDistance" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Esp Fov (Circle)</span>
+                    <label class="switch"><input type="checkbox" id="espFovCircle" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Esp Target (Lock Line)</span>
+                    <label class="switch"><input type="checkbox" id="espTarget" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Silent Target Modal Popup -->
+    <div class="modal" id="targetModal">
+        <div class="modal-content">
+            <h3>Select Silent Target</h3>
+            <div class="modal-option" data-value="Legit">Legit</div>
+            <div class="modal-option" data-value="Body">Body</div>
+            <div class="modal-option" data-value="Head (Risk)">Head (Risk)</div>
+        </div>
+    </div>
+
+    <script>
+        // UI Interaction Scripts
+        const fovSlider = document.getElementById('fovSlider');
+        const fovValue = document.getElementById('fovValue');
+        const delaySlider = document.getElementById('delaySlider');
+        const delayValue = document.getElementById('delayValue');
+        
+        const targetBtn = document.getElementById('targetBtn');
+        const targetModal = document.getElementById('targetModal');
+        let currentSilentTarget = 'Legit';
+
+        fovSlider.addEventListener('input', (e) => {
+            fovValue.innerText = e.target.value;
+        });
+
+        delaySlider.addEventListener('input', (e) => {
+            delayValue.innerText = e.target.value;
+        });
+
+        targetBtn.addEventListener('click', () => {
+            targetModal.style.display = 'flex';
+        });
+
+        document.querySelectorAll('.modal-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                currentSilentTarget = e.target.getAttribute('data-value');
+                targetBtn.innerText = currentSilentTarget;
+                targetModal.style.display = 'none';
+            });
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === targetModal) {
+                targetModal.style.display = 'none';
+            }
+        });
+
+        // Canvas Simulation Logic
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Dummy Enemies
+        let enemies = [
+            { x: 300, y: 150, hp: 100, knocked: false, name: "Enemy #1" },
+            { x: 550, y: 300, hp: 40, knocked: true, name: "Enemy #2 (Knocked)" },
+            { x: 200, y: 450, hp: 100, knocked: false, name: "Enemy #3" }
+        ];
+
+        let crosshair = { x: canvas.width / 2, y: canvas.height / 2 };
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            crosshair.x = e.clientX - rect.left;
+            crosshair.y = e.clientY - rect.top;
+        });
+
+        canvas.addEventListener('click', () => {
+            // Firing simulation logic
+            console.log("Fires triggered with Mode:", currentSilentTarget, "Delay:", delaySlider.value);
+        });
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            let fovRadius = parseInt(fovSlider.value) * 1.5;
+
+            // 1. Draw ESP FOV Circle
+            if (document.getElementById('espFovCircle').checked) {
+                ctx.beginPath();
+                ctx.arc(crosshair.x, crosshair.y, fovRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(0, 255, 204, 0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+
+            let activeEnemyCount = 0;
+
+            enemies.forEach(enemy => {
+                let dist = Math.hypot(enemy.x - crosshair.x, enemy.y - crosshair.y);
+                let insideFov = dist <= fovRadius;
+
+                if (!enemy.knocked) activeEnemyCount++;
+
+                // 2. ESP Line
+                if (document.getElementById('espExternal').checked && document.getElementById('espLine').checked) {
+                    ctx.beginPath();
+                    ctx.moveTo(canvas.width / 2, canvas.height);
+                    ctx.lineTo(enemy.x, enemy.y);
+                    ctx.strokeStyle = enemy.knocked ? 'rgba(255, 100, 100, 0.3)' : 'rgba(0, 255, 204, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+
+                // Draw Enemy Body
+                ctx.fillStyle = enemy.knocked ? '#64748b' : (insideFov && document.getElementById('silentAimEnable').checked ? '#ef4444' : '#3b82f6');
+                ctx.beginPath();
+                ctx.arc(enemy.x, enemy.y, 16, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // 3. ESP Target Lock Line (Silent Target)
+                if (insideFov && document.getElementById('espExternal').checked && document.getElementById('espTarget').checked) {
+                    if (!enemy.knocked || !document.getElementById('ignoreKnocked').checked) {
+                        ctx.beginPath();
+                        ctx.moveTo(crosshair.x, crosshair.y);
+                        ctx.lineTo(enemy.x, enemy.y - 15);
+                        ctx.strokeStyle = '#00ffcc';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    }
+                }
+
+                // 4. ESP Health & 5. Distance
+                if (document.getElementById('espExternal').checked) {
+                    let infoText = "";
+                    if (document.getElementById('espHealth').checked) infoText += `HP: ${enemy.hp} `;
+                    if (document.getElementById('espDistance').checked) infoText += `[${Math.round(dist/10)}m]`;
+
+                    ctx.fillStyle = "#fff";
+                    ctx.font = "11px sans-serif";
+                    ctx.fillText(infoText, enemy.x - 30, enemy.y - 25);
+                }
+            });
+
+            // 6. ESP Alert (Count Display)
+            if (document.getElementById('espExternal').checked && document.getElementById('espAlert').checked) {
+                ctx.fillStyle = "#00ffcc";
+                ctx.font = "bold 14px sans-serif";
+                ctx.fillText(`Active Enemies: ${activeEnemyCount}`, 20, 50);
+            }
+
+            // Draw Crosshair
+            ctx.strokeStyle = '#ff0055';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(crosshair.x, crosshair.y, 6, 0, Math.PI * 2);
+            ctx.stroke();
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
